@@ -1,6 +1,6 @@
 window.addEventListener("resize", function() {
-  app.renderer.resize(window.innerWidth, window.innerHeight);
-});
+  app.renderer.resize(window.innerWidth, window.innerHeight)
+})
 
 let app = new PIXI.Application({
   width: window.innerWidth,
@@ -8,16 +8,20 @@ let app = new PIXI.Application({
   antialias: false
 })
 
-const PLAYER_PARTICLES = 100;
-const PLAYER_PARTICLE_RADIUS = 50;
-const PARTICLE_JUMP_TIMER = 20;
-const PLAYER_MOVE_SPEED = 10;
+const PLAYER_PARTICLES = 100
+const PLAYER_PARTICLE_RADIUS = 50
+const PARTICLE_JUMP_TIMER = 20
+const PLAYER_ACC = 1
+const PLAYER_MAX_VELOCITY = 15
+const PLAYER_FRICTION = 0.5
 
 let playerParticles = []
 
 let player = new PIXI.Container()
-player.x = 200;
-player.y = 200;
+player.x = 200
+player.y = 200
+player.velocity = 0
+player.angle = 0
 
 let appInteractionManager = app.renderer.plugins.interaction
 
@@ -73,26 +77,45 @@ function updatePlayerParticles() {
   }
 }
 
-function movePlayerTowardMouse() {
+function movePlayer() {
   let mouse = appInteractionManager.mouse
   if (mouse.buttons === 1) {
-    let angle = Math.atan2(mouse.global.y - player.y, mouse.global.x - player.x)
-    //let magnitude = mouse.global.y - player.y + mouse.global.x - player.x
-    player.x += Math.cos(angle) * PLAYER_MOVE_SPEED
-    player.y += Math.sin(angle) * PLAYER_MOVE_SPEED
+    // accelerate player toward the mouse pointer
+    if (player.velocity < PLAYER_MAX_VELOCITY) {
+      player.velocity += PLAYER_ACC
+    }
+    player.angle = Math.atan2(mouse.global.y - player.y, mouse.global.x - player.x)
+    // stop when over the pointer
+    let magnitude = Math.hypot(mouse.global.y - player.y, mouse.global.x - player.x)
+    if (magnitude < 5) player.velocity = 0
   }
+  // add velocity to position
+  let oldX = player.x
+  let oldY = player.y
+  player.x += Math.cos(player.angle) * player.velocity
+  player.y += Math.sin(player.angle) * player.velocity
+  // keep player in bounding box
+  if (player.x < 0 || player.x > app.screen.width) {
+    player.x = oldX;
+  }
+  if (player.y < 0 || player.y > app.screen.height) {
+    player.y = oldY;
+  }
+  // friction
+  player.velocity -= PLAYER_FRICTION
+  // prevent drift
+  if (player.velocity < PLAYER_ACC / 4) player.velocity = 0
 }
 
 let playerCircle = new PIXI.Graphics()
 app.stage.addChild(playerCircle)
 function drawPlayer() {
-  playerCircle.lineStyle(2, 0xFF00FF, 1);
-  playerCircle.drawCircle(player.x, player.y, 50);
+  playerCircle.lineStyle(2, 0xFF00FF, 1)
+  playerCircle.drawCircle(player.x, player.y, 50)
 }
 
 function gameLoop(delta) {
   updatePlayerParticles()
-  movePlayerTowardMouse()
-
+  movePlayer()
   //drawPlayer()
 }
