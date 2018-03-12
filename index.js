@@ -5,7 +5,8 @@ window.addEventListener("resize", function() {
 let app = new PIXI.Application({
   width: window.innerWidth,
   height: window.innerHeight,
-  antialias: false
+  antialias: false,
+  clearBeforeRender: true
 })
 
 const PLAYER_PARTICLES = 100
@@ -110,6 +111,7 @@ function movePlayer() {
 let playerCircle = new PIXI.Graphics()
 app.stage.addChild(playerCircle)
 function drawPlayer() {
+  playerCircle.clear()
   playerCircle.lineStyle(2, 0xFF00FF, 1)
   playerCircle.drawCircle(player.x, player.y, 50)
 }
