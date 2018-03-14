@@ -24,6 +24,9 @@ player.y = 200
 player.velocity = 0
 player.angle = 0
 
+const CURSOR_MAX_RADIUS = 50;
+let cursorRadius = CURSOR_MAX_RADIUS;
+
 let appInteractionManager = app.renderer.plugins.interaction
 
 app.stage.addChild(player)
@@ -32,26 +35,32 @@ document.getElementById('game-container').appendChild(app.view)
 
 playerParticleContainer = new PIXI.particles.ParticleContainer()
 
+let playerCircle = new PIXI.Graphics()
+app.stage.addChild(playerCircle)
+
+let cursorGraphic = new PIXI.Graphics()
+app.stage.addChild(cursorGraphic)
+
 setUp()
 
 function makePlayerParticleTexture() {
-  let playerParticleGraphic = new PIXI.Graphics()
+  const playerParticleGraphic = new PIXI.Graphics()
   playerParticleGraphic.beginFill(0xFFFFFF, 1)
   playerParticleGraphic.drawRect(0, 0, 5, 5)
   return app.renderer.generateTexture(playerParticleGraphic)
 }
 
 function jumpParticle(sprite, anchorX, anchorY) {
-  let angle = Math.random() * (Math.PI * 2)
-  let magnitude = Math.random() * PLAYER_PARTICLE_RADIUS
+  const angle = Math.random() * (Math.PI * 2)
+  const magnitude = Math.random() * PLAYER_PARTICLE_RADIUS
   sprite.x = (Math.cos(angle) * magnitude) + anchorX
   sprite.y = (Math.sin(angle) * magnitude) + anchorY
 }
 
 function createPlayerParticles() {
-  let texture = makePlayerParticleTexture()
+  const texture = makePlayerParticleTexture()
   for (let i = 0; i < PLAYER_PARTICLES; i++) {
-    let sprite = new PIXI.Sprite(texture)
+    const sprite = new PIXI.Sprite(texture)
     sprite.anchor.set(0.5)
     jumpParticle(sprite, player.x, player.y)
     sprite.jumpTimer = Math.random() * PARTICLE_JUMP_TIMER
@@ -65,7 +74,7 @@ function setUp() {
   createPlayerParticles()
 }
 
-function updatePlayerParticles() {
+function updatePlayerParticles(delta) {
   for (sprite of playerParticles) {
     sprite.jumpTimer--
     if (sprite.jumpTimer < 0) {
@@ -78,8 +87,8 @@ function updatePlayerParticles() {
   }
 }
 
-function movePlayer() {
-  let mouse = appInteractionManager.mouse
+function movePlayer(delta) {
+  const mouse = appInteractionManager.mouse
   if (mouse.buttons === 1) {
     // accelerate player toward the mouse pointer
     if (player.velocity < PLAYER_MAX_VELOCITY) {
@@ -91,8 +100,8 @@ function movePlayer() {
     if (magnitude < 5) player.velocity = 0
   }
   // add velocity to position
-  let oldX = player.x
-  let oldY = player.y
+  const oldX = player.x
+  const oldY = player.y
   player.x += Math.cos(player.angle) * player.velocity
   player.y += Math.sin(player.angle) * player.velocity
   // keep player in bounding box
@@ -103,21 +112,41 @@ function movePlayer() {
     player.y = oldY;
   }
   // friction
-  player.velocity -= PLAYER_FRICTION
+  player.velocity -= PLAYER_FRICTION * delta
   // prevent drift
   if (player.velocity < PLAYER_ACC / 4) player.velocity = 0
 }
 
-let playerCircle = new PIXI.Graphics()
-app.stage.addChild(playerCircle)
+
 function drawPlayer() {
   playerCircle.clear()
   playerCircle.lineStyle(2, 0xFF00FF, 1)
   playerCircle.drawCircle(player.x, player.y, 50)
 }
 
+function drawCursor(delta) {
+  const mouse = appInteractionManager.mouse
+  const x = mouse.global.x
+  const y = mouse.global.y
+  cursorGraphic.clear()
+  if(mouse.buttons === 1) {
+    cursorGraphic.lineStyle(2, 0xFFFFFF, 1.2 - cursorRadius / CURSOR_MAX_RADIUS)
+    cursorGraphic.drawRect(x - cursorRadius / 2, y - cursorRadius / 2, cursorRadius, cursorRadius)
+    if (cursorRadius > 0) {
+      cursorRadius -= 2
+    } else {
+      cursorRadius = CURSOR_MAX_RADIUS
+    }
+  } else {
+    cursorRadius = CURSOR_MAX_RADIUS
+  }
+}
+
+
 function gameLoop(delta) {
-  updatePlayerParticles()
-  movePlayer()
+  console.log(delta)
+  updatePlayerParticles(delta)
+  movePlayer(delta)
   //drawPlayer()
+  drawCursor(delta)
 }
